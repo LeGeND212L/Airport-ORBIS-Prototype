@@ -15,6 +15,8 @@
 [![Top Language](https://img.shields.io/github/languages/top/LeGeND212L/Airport-ORBIS-Prototype?style=for-the-badge&color=16A34A)](https://github.com/LeGeND212L/Airport-ORBIS-Prototype)
 [![Stars](https://img.shields.io/github/stars/LeGeND212L/Airport-ORBIS-Prototype?style=for-the-badge&color=D97706&logo=github)](https://github.com/LeGeND212L/Airport-ORBIS-Prototype/stargazers)
 
+<sub>🟢 badges above update live from GitHub · diagrams below render live on GitHub</sub>
+
 <!-- ── static tech badges ── -->
 
 ![JavaScript](https://img.shields.io/badge/JavaScript-ES2020-F7DF1E?style=flat-square&logo=javascript&logoColor=black)
@@ -26,7 +28,7 @@
 
 <br/>
 
-[**Live Engine Highlights**](#-the-simulation-engine) · [**Modules**](#-modules-at-a-glance) · [**Architecture**](#-architecture) · [**Quick Start**](#-quick-start) · [**Demo Access**](#-demo-access)
+[**Simulation Engine**](#-the-simulation-engine) · [**Modules**](#-modules-at-a-glance) · [**Architecture**](#-architecture) · [**Alert Model**](#-alert-escalation-model) · [**Demo Access**](#-demo-access)
 
 </div>
 
@@ -51,7 +53,6 @@ On the apron, a delayed pushback cascades into missed slots, crew-hour breaches 
 - [Data & Learning Loop](#-data--learning-loop)
 - [Alert Escalation Model](#-alert-escalation-model)
 - [Tech Stack](#-tech-stack)
-- [Quick Start](#-quick-start)
 - [Demo Access](#-demo-access)
 - [Project Structure](#-project-structure)
 - [Storage Model](#-storage-model)
@@ -200,19 +201,33 @@ flowchart LR
 
 ## 🚨 Alert Escalation Model
 
-Any `AMBER`/`RED` calculation opens an alert and starts an acknowledgement clock. Stages and ordering are preserved (demo timers compressed):
+**In one sentence:** every `AMBER`/`RED` prediction starts a countdown; if nobody acknowledges it in time, ORBIS automatically pushes it up the chain — and a supervisor can **acknowledge at any moment to stop the clock**. RED alerts escalate about twice as fast as AMBER.
+
+**The four stages** — an alert moves down this list only while it stays unacknowledged:
+
+| Stage | RED fires at | AMBER fires at | What ORBIS does | Seen on |
+| :---- | :----------: | :------------: | :-------------- | :------ |
+| **1 · Issued** | 0 min | 0 min | Opens the alert, starts the live countdown | Flight Board |
+| **2 · SMS sent** | 2 min | 5 min | Marks a reminder "SMS sent" | Flight Board |
+| **3 · Escalated** | 5 min | 10 min | Raises it to the shift manager | Manager Dashboard |
+| **4 · Critical** | unacked & < 30 min to arrival | unacked & < 30 min to arrival | Flags `UNACKNOWLEDGED_CRITICAL` in red | Manager Dashboard |
+| **✅ Acknowledged** | any time | any time | Stops the clock, clears the outstanding count | everywhere |
+
+Read the diagram **left → right**. The alert keeps moving right while it's ignored; the green paths show that **acknowledging at any stage sends it straight to “Cleared”**:
 
 ```mermaid
-stateDiagram-v2
-    [*] --> AWAITING: alert issued
-    AWAITING --> SMS_SENT: no ack within t1 (RED 2m / AMBER 5m)
-    SMS_SENT --> ESCALATED: no ack within t2 (RED 5m / AMBER 10m)
-    ESCALATED --> UNACK_CRITICAL: unacked & under 30m to arrival
-    AWAITING --> ACKNOWLEDGED: supervisor acknowledges
-    SMS_SENT --> ACKNOWLEDGED
-    ESCALATED --> ACKNOWLEDGED
-    ACKNOWLEDGED --> [*]
+flowchart LR
+    A["🔔 1. Issued<br/>countdown starts"] --> B["📩 2. SMS sent<br/>RED 2m · AMBER 5m"]
+    B --> C["⛔ 3. Escalated<br/>RED 5m · AMBER 10m<br/>→ shift manager"]
+    C --> D["🔴 4. Critical<br/>unacked · under 30m to arrival"]
+    A -. acknowledge .-> OK(["✅ Cleared"])
+    B -. acknowledge .-> OK
+    C -. acknowledge .-> OK
+    D -. acknowledge .-> OK
+    linkStyle 3,4,5,6 stroke:#16A34A,stroke-width:1.5px,color:#16A34A
 ```
+
+> ⏱️ **Demo note:** the timers are compressed so the whole cascade is visible in a short session — but the **stages and their order are exactly as shown**.
 
 ---
 
@@ -228,29 +243,9 @@ stateDiagram-v2
 
 ---
 
-## 🚀 Quick Start
-
-No build, no install — it's three static files.
-
-```bash
-# 1. Clone
-git clone https://github.com/LeGeND212L/Airport-ORBIS-Prototype.git
-cd Airport-ORBIS-Prototype
-
-# 2a. Simplest: just open it
-start index.html            # Windows
-# open index.html           # macOS
-
-# 2b. Recommended: serve it (avoids any file:// quirks)
-python -m http.server 5500
-#  -> visit http://localhost:5500
-```
+## 🔑 Demo Access
 
 > 💡 On first load ORBIS auto-seeds demo users, 10 flights, a full GSE fleet, weight versions and ~56 historical outcomes — so every screen is alive immediately.
-
----
-
-## 🔑 Demo Access
 
 **MFA code for all accounts:** `12345`
 
@@ -316,13 +311,16 @@ Airport-ORBIS-Prototype/
 
 Seeded with a realistic wide- and narrow-body mix across **A320 · A321 · B737-800 · B777-200ER · B777-300ER · B787-9 · A330-300**, plus a **B747-400** retained for seasonal Hajj/Umrah peak operations. Backed by a comprehensive GSE fleet (pushback tugs, belt/cargo loaders, GPU, ASU, PCA, fuel, water & lavatory units) with live serviceability, MTBF and failure-probability tracking.
 
+Every GSE unit is attributed to its operating **Ground Handling Agent** — modelled on Multan (MUX): **Gerry's dnata**, **PIA Ground Handling**, **Shaheen Airport Services (SAPS)** and **Royal Airport Services (RAS)**, with safety/fixed infrastructure held by the airport authority. The Equipment Register and GSE Entry screens group, filter and report readiness per agent.
+
 ---
 
 ## 🗺️ Roadmap
 
+- [x] **Ground Handling Agent (GHA) model** — every GSE unit attributed to its operating agent, with per-agent readiness _(shipped)_
+- [x] **Expanded GSE catalogue** — powered, non-powered and fixed-infrastructure categories _(shipped)_
 - [ ] **Live weather tick** — periodic heat-index refresh that auto-recomputes affected flights and re-sorts the board in real time
-- [ ] **Ground Handling Agent (GHA)** entity linking GSE ownership and crews
-- [ ] Expanded GSE catalogue and per-stand allocation
+- [ ] Per-stand GSE allocation and crew rostering
 - [ ] Exportable turnaround PDF report per flight
 - [ ] Optional backend + multi-station sync
 
