@@ -1,0 +1,420 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ORBIS — On-Time Ramp Buffer Intelligence System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════════════
+     VIEW: AUTH  (split panel — ambience left, forms right)
+     ══════════════════════════════════════════════════════════ -->
+<div id="view-auth" class="view">
+
+  <!-- ── LEFT: live apron-operations ambience ── -->
+  <aside class="auth-brand">
+    <div class="apron-grid" aria-hidden="true"></div>
+
+    <div class="brand-head">
+      <div class="brand-logo">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 2 L14.5 9.5 L22 12 L14.5 14.5 L12 22 L9.5 14.5 L2 12 L9.5 9.5 Z"/>
+        </svg>
+      </div>
+      <div>
+        <h1 class="brand-name">ORBIS</h1>
+        <p class="brand-tag">On-Time Ramp Buffer Intelligence</p>
+      </div>
+    </div>
+
+    <div class="brand-body">
+      <!-- turnaround clock sweep -->
+      <div class="turn-clock">
+        <svg class="turn-ring" viewBox="0 0 200 200" aria-hidden="true">
+          <circle class="ring-track" cx="100" cy="100" r="86" />
+          <g class="ring-ticks" id="ring-ticks"></g>
+          <circle class="ring-sweep" cx="100" cy="100" r="86" />
+          <g id="stand-pings"></g>
+        </svg>
+        <div class="turn-center">
+          <span class="turn-label">TURNAROUND</span>
+          <span class="turn-count" id="turn-count">00:00</span>
+          <span class="turn-sub">EST · STAND 3</span>
+        </div>
+      </div>
+
+      <!-- heat index readout -->
+      <div class="heat-strip">
+        <div class="heat-top">
+          <span class="heat-label">MUX · HEAT INDEX</span>
+          <span class="heat-val mono" id="heat-val">47°C</span>
+        </div>
+        <div class="heat-bar"><span class="heat-fill" id="heat-fill"></span></div>
+      </div>
+
+      <!-- live turnaround board -->
+      <div class="board">
+        <div class="board-head mono">
+          <span>FLIGHT</span><span>STAND</span><span>EIBT</span><span>BUFFER</span><span>TOBT</span><span>RISK</span>
+        </div>
+        <div class="board-viewport">
+          <div class="board-scroll" id="board-scroll"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="brand-foot mono">
+      <span class="sys-online"><span class="sys-dot"></span>SYSTEM ONLINE</span>
+      <span id="brand-clock">--:-- · SHIFT A</span>
+    </div>
+  </aside>
+
+  <!-- ── RIGHT: form panel (login + signup swap in place) ── -->
+  <section class="auth-forms">
+    <div class="auth-mobilehead">
+      <div class="brand-logo sm">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 2 L14.5 9.5 L22 12 L14.5 14.5 L12 22 L9.5 14.5 L2 12 L9.5 9.5 Z"/>
+        </svg>
+      </div>
+      <span class="brand-name sm">ORBIS</span>
+    </div>
+
+    <div class="auth-swap" id="auth-swap">
+
+      <!-- LOGIN -->
+      <form class="auth-card" id="login-form" novalidate autocomplete="off">
+        <h2 class="ac-title stg">Sign in</h2>
+        <p class="ac-sub stg">Access your station operations workspace.</p>
+
+        <div class="field stg" data-field>
+          <label for="login-id">Email or username</label>
+          <div class="input-wrap">
+            <input type="text" id="login-id" placeholder="you@station.pk" autocomplete="off" />
+          </div>
+        </div>
+
+        <div class="field stg" data-field>
+          <label for="login-pw">Password</label>
+          <div class="input-wrap">
+            <input type="password" id="login-pw" placeholder="••••••••" autocomplete="off" />
+            <button type="button" class="eye" data-eye="login-pw" aria-label="Show password" tabindex="-1"></button>
+          </div>
+        </div>
+
+        <div class="form-msg" id="login-msg" hidden></div>
+
+        <button type="submit" class="btn btn-primary btn-full stg" id="login-btn">
+          <span class="spinner" hidden></span><span class="btn-text">Sign in</span>
+        </button>
+
+        <p class="ac-switch stg">Don't have an account? <a href="#" id="to-signup">Request access</a></p>
+      </form>
+
+      <!-- SIGNUP -->
+      <form class="auth-card" id="signup-form" novalidate autocomplete="off" hidden>
+        <h2 class="ac-title stg">Request access</h2>
+        <p class="ac-sub stg">Submit your details — an administrator reviews every request.</p>
+
+        <div class="field stg" data-field="name">
+          <label for="su-name">Full name</label>
+          <div class="input-wrap">
+            <input type="text" id="su-name" placeholder="Jane Doe" autocomplete="off" />
+            <span class="valid-ico" aria-hidden="true"></span>
+          </div>
+          <p class="field-err"></p>
+        </div>
+
+        <div class="field stg" data-field="email">
+          <label for="su-email">Corporate email</label>
+          <div class="input-wrap">
+            <input type="text" id="su-email" placeholder="you@menzies-ras.pk" autocomplete="off" />
+            <span class="valid-ico" aria-hidden="true"></span>
+          </div>
+          <p class="field-err"></p>
+        </div>
+
+        <div class="grid-2">
+          <div class="field stg" data-field="org">
+            <label for="su-org">Organisation</label>
+            <div class="input-wrap">
+              <input type="text" id="su-org" placeholder="Menzies-RAS" autocomplete="off" />
+              <span class="valid-ico" aria-hidden="true"></span>
+            </div>
+            <p class="field-err"></p>
+          </div>
+          <div class="field stg" data-field="role">
+            <label for="su-role">Role</label>
+            <div class="input-wrap">
+              <select id="su-role">
+                <option value="" selected disabled>Select…</option>
+                <option value="SUPERVISOR">Ramp Supervisor</option>
+                <option value="SHIFT_MANAGER">Shift Operations Manager</option>
+                <option value="STATION_ADMIN">Station Administrator</option>
+                <option value="AIRLINE_REP">Airline Representative</option>
+              </select>
+            </div>
+            <p class="field-err"></p>
+          </div>
+        </div>
+
+        <div class="field stg" data-field="pw">
+          <label for="su-pw">Password</label>
+          <div class="input-wrap">
+            <input type="password" id="su-pw" placeholder="••••••••" autocomplete="new-password" />
+            <button type="button" class="eye" data-eye="su-pw" aria-label="Show password" tabindex="-1"></button>
+          </div>
+          <div class="strength" id="su-strength">
+            <div class="strength-bar"><span class="strength-fill"></span></div>
+            <span class="strength-label">—</span>
+          </div>
+          <ul class="pw-checklist" id="su-checklist">
+            <li data-rule="len"><span class="tick"></span>8+ characters</li>
+            <li data-rule="upper"><span class="tick"></span>Uppercase letter</li>
+            <li data-rule="number"><span class="tick"></span>Number</li>
+            <li data-rule="special"><span class="tick"></span>Special character</li>
+          </ul>
+        </div>
+
+        <div class="field stg" data-field="confirm">
+          <label for="su-confirm">Confirm password</label>
+          <div class="input-wrap">
+            <input type="password" id="su-confirm" placeholder="••••••••" autocomplete="new-password" />
+            <button type="button" class="eye" data-eye="su-confirm" aria-label="Show password" tabindex="-1"></button>
+            <span class="valid-ico" aria-hidden="true"></span>
+          </div>
+          <p class="field-err"></p>
+        </div>
+
+        <div class="form-msg" id="signup-msg" hidden></div>
+
+        <button type="submit" class="btn btn-primary btn-full stg" id="signup-btn">
+          <span class="spinner" hidden></span><span class="btn-text">Submit request</span>
+        </button>
+
+        <p class="ac-switch stg">Already have an account? <a href="#" id="to-login">Sign in</a></p>
+      </form>
+
+      <!-- SIGNUP SUCCESS -->
+      <div class="auth-card ac-success" id="signup-success" hidden>
+        <div class="success-ring">
+          <svg viewBox="0 0 120 120" aria-hidden="true">
+            <circle class="sr-track" cx="60" cy="60" r="52" />
+            <circle class="sr-fill" id="sr-fill" cx="60" cy="60" r="52" />
+          </svg>
+          <div class="success-check">
+            <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 L9 17 L4 12"/></svg>
+          </div>
+        </div>
+        <h2 class="ac-title center">Access request submitted</h2>
+        <p class="ac-sub center">Awaiting administrator approval.<br />Returning you to sign in…</p>
+      </div>
+
+    </div>
+  </section>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     VIEW: MFA
+     ══════════════════════════════════════════════════════════ -->
+<div id="view-mfa" class="view">
+  <div class="mfa-ambient" aria-hidden="true"><span class="mfa-echo"></span><span class="mfa-echo d2"></span></div>
+  <div class="mfa-card">
+    <div class="mfa-shield">
+      <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 2 L20 5 V11 C20 16 16.5 19.5 12 22 C7.5 19.5 4 16 4 11 V5 Z"/>
+        <path d="M9 12 L11 14 L15 10"/>
+      </svg>
+    </div>
+    <h2 class="mfa-title">Two-factor authentication</h2>
+    <p class="mfa-sub" id="mfa-sub">Enter the 5-digit verification code.</p>
+
+    <div class="mfa-inputs" id="mfa-inputs">
+      <input class="mfa-box mono" maxlength="1" inputmode="numeric" autocomplete="off" />
+      <input class="mfa-box mono" maxlength="1" inputmode="numeric" autocomplete="off" />
+      <input class="mfa-box mono" maxlength="1" inputmode="numeric" autocomplete="off" />
+      <input class="mfa-box mono" maxlength="1" inputmode="numeric" autocomplete="off" />
+      <input class="mfa-box mono" maxlength="1" inputmode="numeric" autocomplete="off" />
+    </div>
+
+    <div class="form-msg mfa-msg" id="mfa-msg" hidden></div>
+    <p class="mfa-help mono">Demo code — <code>12345</code>. No SMS or email is sent.</p>
+    <button type="button" class="btn btn-ghost btn-sm mfa-back" id="mfa-back">Cancel</button>
+
+    <div class="mfa-success" id="mfa-success" hidden>
+      <div class="mfa-success-check">
+        <svg viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 L9 17 L4 12"/></svg>
+      </div>
+      <p>Verified</p>
+      <div class="mfa-progress"><span></span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     VIEW: ADMIN DASHBOARD
+     ══════════════════════════════════════════════════════════ -->
+<div id="view-admin" class="view">
+  <header class="topbar">
+    <div class="tb-left">
+      <div class="brand-logo sm">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 L14.5 9.5 L22 12 L14.5 14.5 L12 22 L9.5 14.5 L2 12 L9.5 9.5 Z"/></svg>
+      </div>
+      <span class="brand-name sm">ORBIS</span>
+      <span class="tb-div"></span>
+      <span class="tb-crumb">Station Control · MUX</span>
+    </div>
+    <div class="tb-right">
+      <span class="tb-clock mono" id="admin-clock">--:--:--</span>
+      <span class="session-pill" id="admin-session"><span class="sp-dot"></span><span class="sp-time mono">15:00</span></span>
+      <span class="tb-who" id="admin-who"></span>
+      <button type="button" class="btn btn-ghost btn-sm" id="admin-signout">Sign out</button>
+    </div>
+  </header>
+
+  <main class="admin-main">
+    <!-- skeleton -->
+    <div id="admin-skeleton">
+      <div class="sk sk-banner"></div>
+      <div class="sk-strip"><div class="sk sk-tile"></div><div class="sk sk-tile"></div><div class="sk sk-tile"></div><div class="sk sk-tile"></div></div>
+      <div class="sk sk-block"></div>
+    </div>
+
+    <div id="admin-content" hidden>
+      <!-- pending banner -->
+      <div class="pending-banner" id="pending-banner" hidden>
+        <span class="pb-pulse"></span>
+        <span class="pb-text"></span>
+        <button type="button" class="pb-link" id="pb-link">Review now</button>
+      </div>
+
+      <!-- summary strip -->
+      <section class="strip">
+        <div class="tile tile-pending"><span class="tile-num mono" id="c-pending">0</span><span class="tile-label">Pending</span></div>
+        <div class="tile tile-approved"><span class="tile-num mono" id="c-approved">0</span><span class="tile-label">Approved</span></div>
+        <div class="tile tile-rejected"><span class="tile-num mono" id="c-rejected">0</span><span class="tile-label">Rejected</span></div>
+        <div class="tile tile-suspended"><span class="tile-num mono" id="c-suspended">0</span><span class="tile-label">Suspended</span></div>
+      </section>
+
+      <!-- users management -->
+      <section class="panel">
+        <div class="panel-head">
+          <div class="panel-title">
+            <h2>Users Management</h2>
+            <span class="panel-count mono" id="user-total">0 registered</span>
+          </div>
+          <button type="button" class="btn btn-primary btn-sm" id="add-user-btn">+ Add User</button>
+        </div>
+
+        <div class="filters">
+          <div class="search">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20 L16.5 16.5"/></svg>
+            <input type="text" id="user-search" placeholder="Search by name or email…" autocomplete="off" />
+          </div>
+          <select id="filter-status" class="filter-select">
+            <option value="ALL">All statuses</option>
+            <option value="PENDING">Pending</option>
+            <option value="APPROVED">Approved</option>
+            <option value="REJECTED">Rejected</option>
+            <option value="SUSPENDED">Suspended</option>
+          </select>
+          <select id="filter-role" class="filter-select">
+            <option value="ALL">All roles</option>
+            <option value="SUPER_ADMIN">System Administrator</option>
+            <option value="SUPERVISOR">Ramp Supervisor</option>
+            <option value="SHIFT_MANAGER">Shift Operations Manager</option>
+            <option value="STATION_ADMIN">Station Administrator</option>
+            <option value="AIRLINE_REP">Airline Representative</option>
+          </select>
+        </div>
+
+        <div class="bulkbar" id="bulkbar" hidden>
+          <span class="bulk-count mono"><strong id="bulk-n">0</strong> selected</span>
+          <div class="bulk-actions">
+            <button type="button" class="btn btn-success btn-xs" data-bulk="approve">Approve</button>
+            <button type="button" class="btn btn-outline-red btn-xs" data-bulk="reject">Reject</button>
+            <button type="button" class="btn btn-outline-red btn-xs" data-bulk="delete">Delete</button>
+            <button type="button" class="btn btn-ghost btn-xs" data-bulk="clear">Clear</button>
+          </div>
+        </div>
+
+        <div class="table-scroll">
+          <table class="tbl">
+            <thead>
+              <tr>
+                <th class="th-check"><input type="checkbox" id="check-all" aria-label="Select all" /></th>
+                <th>Name</th><th>Email</th><th>Role</th><th>Status</th>
+                <th>Access</th><th>Session</th><th>Registered</th><th class="th-act">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="users-body"></tbody>
+          </table>
+        </div>
+        <div id="users-empty" hidden></div>
+      </section>
+
+      <!-- activity log -->
+      <section class="panel">
+        <div class="panel-head">
+          <div class="panel-title"><h2>Activity Log</h2><span class="panel-count mono" id="activity-count">0 entries</span></div>
+          <div class="export-btns">
+            <button type="button" class="btn btn-ghost btn-sm" id="export-csv">Export CSV</button>
+            <button type="button" class="btn btn-ghost btn-sm" id="export-json">Export JSON</button>
+          </div>
+        </div>
+        <div id="activity-list" class="activity-list"></div>
+      </section>
+    </div>
+  </main>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     VIEW: APP  (post-login stub — permission-driven nav)
+     ══════════════════════════════════════════════════════════ -->
+<div id="view-app" class="view">
+  <header class="topbar">
+    <div class="tb-left">
+      <div class="brand-logo sm">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 L14.5 9.5 L22 12 L14.5 14.5 L12 22 L9.5 14.5 L2 12 L9.5 9.5 Z"/></svg>
+      </div>
+      <span class="brand-name sm">ORBIS</span>
+      <span class="tb-div"></span>
+      <span class="tb-crumb mono" id="app-station">MUX · SHIFT A</span>
+    </div>
+    <div class="tb-right">
+      <button type="button" class="alert-badge" id="alert-badge" hidden aria-label="Outstanding alerts">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 a6 6 0 0 0-6 6 c0 5-2 6-2 6 h16 s-2-1-2-6 a6 6 0 0 0-6-6"/><path d="M10 20 a2 2 0 0 0 4 0"/></svg>
+        <span class="ab-count mono" id="alert-count">0</span>
+      </button>
+      <span class="tb-clock mono" id="app-clock">--:--:--</span>
+      <span class="session-pill" id="app-session"><span class="sp-dot"></span><span class="sp-time mono">15:00</span></span>
+      <span class="tb-who" id="app-who"></span>
+      <button type="button" class="btn btn-ghost btn-sm" id="app-signout">Sign out</button>
+    </div>
+  </header>
+
+  <div class="degraded-banner" id="degraded-banner" hidden></div>
+
+  <div class="app-body">
+    <nav class="app-nav" id="app-nav"></nav>
+    <main class="module-root" id="module-root"></main>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     Overlay hosts (body-level — never clipped)
+     ══════════════════════════════════════════════════════════ -->
+<div id="toast-wrap" class="toast-wrap" aria-live="polite"></div>
+<div id="modal-host" class="modal-host" hidden></div>
+<div id="confirm-host" class="modal-host" hidden></div>
+<div id="drawer-host" class="drawer-host" hidden></div>
+<div id="kebab-host" class="kebab-host" hidden></div>
+
+<script src="script.js"></script>
+</body>
+</html>
