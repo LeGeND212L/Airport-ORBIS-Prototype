@@ -141,39 +141,81 @@ $$
 
 ## 🏗️ Architecture
 
+ORBIS is engineered with a strict **decoupled, multi-tier architecture** separating the user presentation layer, permission guards, state management, and the pure deterministic calculation engine.
+
+### 🏛️ System Layer Overview
+
 ```mermaid
-flowchart TD
-    subgraph Shell["🖥️ Permission-Driven App Shell"]
-        NAV["Sidebar / bottom-tab nav<br/>(built from user.permissions)"]
-        GUARD{"showModule()<br/>permission guard"}
+flowchart TB
+    %% Styled nodes for high contrast & legibility in both GitHub Dark & Light modes
+    classDef shellStyle fill:#1E293B,stroke:#3B82F6,stroke-width:2px,color:#F8FAFC;
+    classDef engineStyle fill:#0F172A,stroke:#10B981,stroke-width:2px,color:#F8FAFC;
+    classDef storeStyle fill:#1E1B4B,stroke:#8B5CF6,stroke-width:2px,color:#F8FAFC;
+    classDef moduleStyle fill:#1E293B,stroke:#F59E0B,stroke-width:2px,color:#F8FAFC;
+
+    subgraph Tier1 ["🖥️ PRESENTATION & ACCESS LAYER"]
+        AUTH["🔐 Authentication & MFA Manager"]
+        RBAC["🛡️ RBAC & Permission Guard"]
+        SHELL["🌐 Dynamic App Shell & Nav"]
     end
 
-    subgraph Engine["🔬 Pure Simulation Engine (no DOM)"]
-        PRNG["mulberry32 PRNG<br/>+ Box–Muller"]
-        MC["1000x Monte-Carlo"]
-        CALC["calculateFlightRisk()"]
+    subgraph Tier2 ["🎛️ OPERATIONAL MODULE SUITE"]
+        FB["✈️ Flight Board (S2)"]
+        TD["🔍 Turnaround Detail (S3)"]
+        GSE["⚡ GSE Entry (S4)"]
+        OB["⏱️ Off-Block Logging (S5)"]
+        MGR["📊 Manager Dashboard (S6)"]
+        EQ["🛠️ Equipment Register (S7)"]
+        WT["🧮 Weights & Calibration (S8)"]
+        ANL["📈 Accuracy Analytics (S9)"]
     end
 
-    subgraph Store["💾 localStorage"]
-        F[("orbis_flights")]
-        W[("orbis_weights<br/>append-only")]
-        O[("orbis_outcomes")]
-        A[("orbis_alerts")]
-        G[("orbis_gse")]
+    subgraph Tier3 ["🔬 PURE DETERMINISTIC ENGINE (No DOM)"]
+        PRNG["🎲 Seeded PRNG (mulberry32)"]
+        BM["📈 Box-Muller Gaussian Draw"]
+        MC["🔁 1,000 Iteration Monte-Carlo"]
+        ATTR["📊 Share & Dominant Driver Math"]
+        RISK["🎯 Risk Level Classification"]
     end
 
-    NAV --> GUARD
-    GUARD -->|allowed| M["8 Operational Modules"]
-    GUARD -->|denied| DENY["Access-denied + redirect"]
-    M --> CALC
-    W --> CALC
-    F --> CALC
-    PRNG --> MC --> CALC
-    CALC --> F
-    M --> A
-    M --> O
-    M --> G
+    subgraph Tier4 ["💾 PERSISTENCE & DATA LAYER"]
+        S_FLT[("orbis_flights")]
+        S_WGT[("orbis_weights (Append-Only)")]
+        S_OUT[("orbis_outcomes (Append-Only)")]
+        S_ALT[("orbis_alerts")]
+        S_GSE[("orbis_gse")]
+    end
+
+    AUTH --> RBAC --> SHELL
+    SHELL --> FB & TD & GSE & OB & MGR & EQ & WT & ANL
+    FB & TD & GSE & OB --> PRNG
+    S_FLT & S_WGT --> PRNG
+    PRNG --> BM --> MC --> ATTR --> RISK
+    RISK --> S_FLT & S_ALT
+    OB --> S_OUT
+
+    class AUTH,RBAC,SHELL shellStyle;
+    class PRNG,BM,MC,ATTR,RISK engineStyle;
+    class S_FLT,S_WGT,S_OUT,S_ALT,S_GSE storeStyle;
+    class FB,TD,GSE,OB,MGR,EQ,WT,ANL moduleStyle;
 ```
+
+### 🧩 Architectural Layer Breakdown
+
+| Layer | Responsibility | Key Components & Guarantees |
+| :--- | :--- | :--- |
+| **1. App Shell & Security** | Authentication, MFA & Access Control | • **Role-Based Access Control (RBAC):** Restricts modules at the data-array level.<br/>• **Session Management:** 15-min sliding activity expiry & 5-digit corporate MFA. |
+| **2. Operations Suite** | Interactive User Workspaces (S2–S9) | • **8 Operational Modules:** Flight board, turnaround details, GSE entry, off-block logs, manager KPIs, equipment register, weights calibration, and analytics.<br/>• **UI Stability:** Focus-preserving virtualized DOM row updates. |
+| **3. Pure Simulation Engine** | Deterministic Monte-Carlo Simulation | • **Zero DOM Dependence:** Arrays-in / numbers-out pure function.<br/>• **Seeded PRNG (`mulberry32` + `Box-Muller`):** 1,000 iterations producing 100% reproducible predictions.<br/>• **Monotonicity Contract (T9):** Guarantees higher risk inputs never decrease recommended buffers. |
+| **4. Persistence & Audit** | Namespaced Local Storage State | • **Append-Only Repositories:** Weight versions & historical outcomes are preserved permanently.<br/>• **Audit Log:** Complete activity & alert escalation trail. |
+
+### ⚡ Data Flow Sequence
+
+1. **Input Ingestion & Provenance Tagging:** Live weather, GSE availability, MTBF failure probability, passenger load, and PRM counts arrive with quality metadata (`GOOD`, `STALE`, `MANUAL`, `CACHED`).
+2. **Deterministic Seed Generation:** `hash(flightNumber + timestamp)` creates a unique seed.
+3. **1,000 Monte-Carlo Draws:** Normalised inputs undergo Gaussian sampling and non-linear logistic scaling.
+4. **Buffer & TOBT Computation:** Engine outputs P10/P50/P90 confidence bands, dominant driver attribution, and Target Off-Block Time.
+5. **Alert & Action Dispatch:** `AMBER`/`RED` risk levels trigger live countdown timers and escalation workflows.
 
 ---
 
