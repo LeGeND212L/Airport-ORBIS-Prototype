@@ -144,57 +144,40 @@ $$
 
 ## 🏗️ Architecture
 
+Four simple layers. A signed-in user only ever sees the modules their role allows; those modules read and write through one pure engine and one local store.
+
 ```mermaid
-flowchart TD
-    subgraph Shell["🖥️ Permission-Driven App Shell"]
-        NAV["Sidebar / bottom-tab nav<br/>(built from user.permissions)"]
-        GUARD{"showModule()<br/>permission guard"}
-    end
-
-    subgraph Engine["🔬 Pure Simulation Engine (no DOM)"]
-        PRNG["mulberry32 PRNG<br/>+ Box–Muller"]
-        MC["1000x Monte-Carlo"]
-        CALC["calculateFlightRisk()"]
-    end
-
-    subgraph Store["💾 localStorage"]
-        F[("orbis_flights")]
-        W[("orbis_weights<br/>append-only")]
-        O[("orbis_outcomes")]
-        A[("orbis_alerts")]
-        G[("orbis_gse")]
-    end
-
-    NAV --> GUARD
-    GUARD -->|allowed| M["8 Operational Modules"]
-    GUARD -->|denied| DENY["Access-denied + redirect"]
-    M --> CALC
-    W --> CALC
-    F --> CALC
-    PRNG --> MC --> CALC
-    CALC --> F
-    M --> A
-    M --> O
-    M --> G
+flowchart TB
+    U["👤 Signed-in user<br/>role + module permissions"]
+    U --> SHELL["🖥️ App Shell<br/>builds the nav · guards every module"]
+    SHELL --> MODS["📊 8 Operational Modules<br/>Flight Board · Turnaround · GSE · Manager · …"]
+    MODS <--> ENG["🔬 Simulation Engine<br/>pure · seeded · deterministic"]
+    MODS <--> DB[("💾 localStorage<br/>flights · weights · outcomes · alerts · GSE")]
+    ENG <--> DB
 ```
+
+> If a user lacks a module's permission, the shell blocks it and redirects to the Flight Board — access is enforced in the data layer, not just hidden.
 
 ---
 
 ## 🔄 Data & Learning Loop
 
-ORBIS is a closed loop: inputs drive predictions, predictions drive action, actuals are captured, and the captured error re-tunes the model.
+ORBIS is a closed loop: inputs drive predictions, predictions drive action, actuals are captured, and the captured error re-tunes the model. Read the top row left→right, drop down, then the bottom row left→right — the last step feeds a new weight version back into the engine.
 
 ```mermaid
-flowchart LR
-    IN["🌡️ Inputs<br/>heat · GSE · MTBF · load · PRM"] --> ENG["🔬 Engine"]
-    ENG --> PRED["📊 Buffer + TOBT + Risk"]
-    PRED --> BOARD["✈️ Flight Board<br/>(risk-sorted)"]
-    BOARD --> ACT["✅ Acknowledge + Actions"]
-    ACT --> OFF["⏱️ Off-Block Logging"]
-    OFF --> OUT["📁 Outcomes<br/>(predicted vs actual)"]
-    OUT --> ANL["📈 Accuracy Analytics"]
-    ANL --> RECAL["⚖️ Recalibration<br/>(MAE-minimising)"]
-    RECAL -->|new weight version| ENG
+flowchart TB
+    subgraph top [" "]
+        direction LR
+        A["🌡️ 1 · Inputs<br/>heat · GSE · MTBF<br/>load · PRM"] --> B["🔬 2 · Engine<br/>1000× Monte-Carlo"] --> C["📊 3 · Prediction<br/>Buffer · TOBT · Risk"] --> D["✈️ 4 · Flight Board<br/>risk-sorted"]
+    end
+    subgraph bottom [" "]
+        direction LR
+        E["✅ 5 · Acknowledge<br/>+ actions"] --> F["⏱️ 6 · Off-Block<br/>log actual time"] --> G["📁 7 · Outcomes<br/>predicted vs actual"] --> H["⚖️ 8 · Recalibrate<br/>MAE-minimising"]
+    end
+    D --> E
+    H -. new weight version .-> B
+    style top fill:none,stroke:none
+    style bottom fill:none,stroke:none
 ```
 
 ---
