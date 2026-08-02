@@ -664,6 +664,10 @@ select{ appearance:none; cursor:pointer; padding-right:34px;
 .ac-sel-lbl{ font-size:11.5px; font-weight:700; color:var(--text-mute); white-space:nowrap; }
 .ac-sel-dropdown{ background:var(--surface); color:var(--text); border:1px solid var(--border); border-radius:var(--r-xs); padding:5px 10px; font-size:13px; font-weight:700; cursor:pointer; outline:none; transition:border-color .15s; }
 .ac-sel-dropdown:hover, .ac-sel-dropdown:focus{ border-color:var(--primary); }
+.ac-spec-banner{ display:grid; grid-template-columns:repeat(auto-fit, minmax(170px, 1fr)); gap:10px; background:var(--surface-alt); border:1px solid var(--border); border-radius:var(--r-sm); padding:12px 16px; margin-bottom:16px; }
+.asb-item{ display:flex; flex-direction:column; gap:2px; }
+.asb-k{ font-size:10px; font-weight:700; color:var(--text-mute); letter-spacing:.04em; }
+.asb-v{ font-size:14px; font-weight:700; color:var(--primary-dark); }
 .turn-grid{ display:grid; grid-template-columns:1fr 1fr; gap:16px; }
 .gauge-card,.band-card,.drive-card,.prov-card,.action-card,.tobt-card{ margin-bottom:0; }
 .band-card,.drive-card,.action-card,.prov-card{ grid-column:1 / -1; }
@@ -740,7 +744,7 @@ select{ appearance:none; cursor:pointer; padding-right:34px;
 .verify-result.ok{ background:var(--green-lite); border:1px solid #86EFAC; color:#15803D; } .verify-result.fail{ background:var(--red-lite); border:1px solid #FCA5A5; color:#991B1B; }
 
 /* ── S4 GSE entry ── */
-.gse-wrap{ max-width:960px; margin:0 auto; width:100%; }
+.gse-wrap{ max-width:100%; margin:0 auto; width:100%; }
 
 .gse-summary-card{ padding:18px 22px; margin-bottom:16px; display:flex; flex-direction:column; gap:14px; }
 .gsc-top{ display:flex; align-items:flex-end; justify-content:space-between; gap:16px; }
@@ -961,6 +965,49 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover{
 .recalib-metrics{ display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:12px; } .rcm{ background:var(--surface-alt); border-radius:var(--r-sm); padding:11px 13px; } .rcm-k{ display:block; font-size:11px; color:var(--text-mute); } .rcm-v{ display:block; font-size:18px; font-weight:700; margin-top:3px; } .rcm-v.good{ color:var(--green); }
 .recalib-nochange{ margin-top:12px; font-size:13px; padding:11px 13px; background:var(--surface-alt); border-radius:var(--r-sm); color:var(--text-mute); }
 .an-export{ display:flex; gap:10px; justify-content:flex-end; }
+
+/* ── Manager · GSE fleet readiness + by-type grid ── */
+.gse-readiness{ display:flex; flex-direction:column; gap:14px; }
+.gro{ display:flex; align-items:baseline; gap:10px; }
+.gro-pct{ font-size:30px; font-weight:700; letter-spacing:-.02em; line-height:1; }
+.gro-lbl{ font-size:12.5px; color:var(--text-mute); } .gro-lbl strong{ color:var(--red); font-weight:700; }
+.gr-cats{ display:flex; flex-direction:column; gap:9px; }
+.grc-row{ display:grid; grid-template-columns:1.3fr 2.2fr auto; gap:10px; align-items:center; font-size:12.5px; }
+.grc-lbl{ color:var(--text); }
+.grc-bar{ height:8px; background:var(--surface-alt); border-radius:999px; overflow:hidden; }
+.grc-bar span{ display:block; height:100%; border-radius:999px; transition:width .4s var(--ease); }
+.grc-val{ font-size:11.5px; color:var(--text-mute); white-space:nowrap; }
+
+.gse-type-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(210px,1fr)); gap:12px 20px; }
+.gtg-item{ display:flex; flex-direction:column; gap:5px; }
+.gtg-top{ display:flex; align-items:baseline; justify-content:space-between; gap:8px; }
+.gtg-name{ font-size:12.5px; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.gtg-val{ font-size:11px; color:var(--text-mute); white-space:nowrap; } .gtg-val.has-uns{ color:var(--red); font-weight:600; }
+.gtg-bar{ height:6px; background:var(--surface-alt); border-radius:999px; overflow:hidden; }
+.gtg-bar span{ display:block; height:100%; border-radius:999px; }
+
+/* ── Ground Handling Agents (Equipment Register) ── */
+.gha-section{ margin-bottom:16px; }
+.gha-head{ display:flex; align-items:baseline; justify-content:space-between; gap:12px; margin-bottom:10px; }
+.gha-sub{ font-size:11px; color:var(--text-mute); }
+.gha-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:12px; }
+.gha-card{ text-align:left; background:var(--surface); border:1px solid var(--border); border-left:4px solid var(--gha,var(--primary));
+  border-radius:var(--r); box-shadow:var(--sh-1); padding:14px 15px; cursor:pointer; transition:box-shadow .15s, transform .15s, border-color .15s; }
+.gha-card:hover{ box-shadow:var(--sh-2); transform:translateY(-1px); }
+.gha-card.active{ box-shadow:0 0 0 2px var(--gha,var(--primary)) inset, var(--sh-2); }
+.ghc-top{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:5px; }
+.ghc-name{ font-size:14px; font-weight:700; color:var(--text); }
+.ghc-role{ font-size:12px; color:var(--text); font-weight:500; }
+.ghc-carriers{ font-size:11.5px; color:var(--text-mute); margin-top:4px; line-height:1.45; min-height:32px; }
+.ghc-foot{ display:flex; align-items:center; gap:8px; margin-top:10px; }
+.ghc-units{ font-size:11px; font-weight:700; color:var(--gha,var(--primary)); white-space:nowrap; }
+.ghc-bar{ flex:1; height:6px; background:var(--surface-alt); border-radius:999px; overflow:hidden; }
+.ghc-bar span{ display:block; height:100%; border-radius:999px; background:var(--gha,var(--primary)); }
+.ghc-pct{ font-size:10.5px; color:var(--text-mute); white-space:nowrap; }
+.gha-badge{ display:inline-flex; align-items:center; font-family:var(--mono); font-size:10px; font-weight:700;
+  padding:2px 8px; border-radius:999px; color:var(--gha,var(--primary));
+  background:color-mix(in srgb, var(--gha,var(--primary)) 14%, transparent);
+  border:1px solid color-mix(in srgb, var(--gha,var(--primary)) 32%, transparent); white-space:nowrap; }
 
 /* ── responsive ── */
 @media (max-width:900px){

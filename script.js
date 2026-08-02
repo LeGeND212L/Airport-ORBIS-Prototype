@@ -1360,7 +1360,6 @@ function wireApp() { document.getElementById('app-signout').addEventListener('cl
 function init() {
   seedIfEmpty();
   seedOpsData();
-  migrateFleetDesignations();
   ambient.init();
   wireAuth(); wireMFA(); wireAdmin(); wireApp();
 
@@ -1619,39 +1618,11 @@ function lookupActions(riskLevel, dominantVariable) {
   return list;
 }
 
-/* Self-healing fleet designations. Runs every load and enforces the
-   canonical aircraft type + capacity on stored flights (types/pax only —
-   no recompute). Writes only when something actually differs, so it is
-   cheap and can never get stuck behind a stale one-time flag. */
-const FLEET_MAP = {
-  'PK-301': ['Airbus A320', 180],
-  'PA-204': ['Boeing 777-200ER', 280],
-  'ER-712': ['Airbus A321', 220],
-  'PK-305': ['Boeing 747-400', 416],
-  'FZ-336': ['Boeing 737-800', 186],
-  'EK-623': ['Boeing 777-300ER', 358],
-  'ER-540': ['Airbus A330-300', 290],
-  '9P-118': ['Airbus A320', 180],
-  'QR-612': ['Boeing 787 Dreamliner', 290],
-  '9P-220': ['Airbus A321', 220]
-};
-
 function formatStand(stand) {
   if (stand == null || stand === '') return 'Stand —';
   const str = String(stand).trim();
   if (/^stand\s+/i.test(str)) return str;
   return 'Stand ' + str;
-}
-
-function migrateFleetDesignations() {
-  const fl = getFlights(); if (!fl.length) return;
-  let changed = false;
-  fl.forEach(f => {
-    const m = FLEET_MAP[f.flightNumber]; if (!m) return;
-    if (f.aircraftType !== m[0]) { f.aircraftType = m[0]; changed = true; }
-    if (f.rawInputs && f.rawInputs.passengerTotal !== m[1]) { f.rawInputs.passengerTotal = m[1]; changed = true; }
-  });
-  if (changed) saveFlights(fl);
 }
 
 /* ═══ (D) SEED DATA — make every screen look alive ══════════ */
@@ -1703,7 +1674,8 @@ function seedOpsData() {
   if (!getGse().length || getGse().length < 35 || !getGse()[0].category) {
     const svcDates = (lastD, nextD) => ({ lastService: dayAgo(lastD), nextServiceDue: iso(now + nextD * 864e5) });
     const unit = (typeCode, type, n, serial, status, mtbf, lastD, nextD, cat = 'POWERED', log) => Object.assign({
-      id: 'gse-' + typeCode + '-' + n, typeCode, type, serial, status, category: cat, mtbfHours: mtbf,
+      id: 'gse-' + typeCode + '-' + n, typeCode, type, serial, status, category: cat,
+      gha: GHA_BY_TYPE[typeCode] || 'AUTH', mtbfHours: mtbf,
       maintLog: log || [{ date: dayAgo(lastD), type: 'Scheduled service', notes: 'Routine inspection completed.', hours: 2 }]
     }, svcDates(lastD, nextD));
     saveGse([
@@ -1774,7 +1746,8 @@ function seedOpsData() {
     'B777-300ER': 'Boeing 777-300ER',
     'B787-9': 'Boeing 787 Dreamliner',
     'A330-300': 'Airbus A330-300',
-    'B747-400': 'Boeing 747-400 (Hajj Peak)'
+    'B747-400': 'Boeing 747-400 (Hajj Peak)',
+    'Boeing 747-400': 'Boeing 747-400 (Hajj Peak)'
   };
 
   const existingFlights = getFlights();
@@ -2325,14 +2298,38 @@ function tickBoardCountdowns() {
 function openTurnaround(flightId) { selectedFlightId = flightId; showModule('turnaround'); }
 
 const AIRCRAFT_SPECS = {
-  'Airbus A320': { seating: 180, defaultLoad: 88, mtbfProb: 0.22 },
-  'Airbus A321': { seating: 220, defaultLoad: 90, mtbfProb: 0.25 },
-  'Boeing 737-800': { seating: 186, defaultLoad: 85, mtbfProb: 0.20 },
-  'Boeing 777-200ER': { seating: 280, defaultLoad: 92, mtbfProb: 0.45 },
-  'Boeing 777-300ER': { seating: 358, defaultLoad: 94, mtbfProb: 0.48 },
-  'Boeing 787 Dreamliner': { seating: 290, defaultLoad: 89, mtbfProb: 0.30 },
-  'Airbus A330-300': { seating: 290, defaultLoad: 88, mtbfProb: 0.35 },
-  'Boeing 747-400 (Hajj Peak)': { seating: 416, defaultLoad: 96, mtbfProb: 0.55 }
+  'Airbus A320': {
+    seating: 180, loadPct: 88, pax: 158, mtbfProb: 0.22, gseTotal: 6, gseAvail: 5, prm: 3,
+    cat: 'Narrowbody Regional', turnMinutes: 45
+  },
+  'Airbus A321': {
+    seating: 220, loadPct: 90, pax: 198, mtbfProb: 0.25, gseTotal: 7, gseAvail: 5, prm: 4,
+    cat: 'High-Density Narrowbody', turnMinutes: 50
+  },
+  'Boeing 737-800': {
+    seating: 186, loadPct: 85, pax: 158, mtbfProb: 0.20, gseTotal: 6, gseAvail: 5, prm: 3,
+    cat: 'Narrowbody International', turnMinutes: 45
+  },
+  'Boeing 777-200ER': {
+    seating: 280, loadPct: 92, pax: 258, mtbfProb: 0.45, gseTotal: 12, gseAvail: 4, prm: 7,
+    cat: 'Widebody Long-Haul', turnMinutes: 75
+  },
+  'Boeing 777-300ER': {
+    seating: 358, loadPct: 94, pax: 336, mtbfProb: 0.48, gseTotal: 14, gseAvail: 4, prm: 9,
+    cat: 'Widebody Long-Haul Heavy', turnMinutes: 90
+  },
+  'Boeing 787 Dreamliner': {
+    seating: 290, loadPct: 89, pax: 258, mtbfProb: 0.30, gseTotal: 10, gseAvail: 8, prm: 5,
+    cat: 'Composite Widebody', turnMinutes: 65
+  },
+  'Airbus A330-300': {
+    seating: 290, loadPct: 88, pax: 255, mtbfProb: 0.35, gseTotal: 10, gseAvail: 7, prm: 6,
+    cat: 'Widebody Medium-Haul', turnMinutes: 70
+  },
+  'Boeing 747-400 (Hajj Peak)': {
+    seating: 416, loadPct: 96, pax: 400, mtbfProb: 0.58, gseTotal: 16, gseAvail: 3, prm: 14,
+    cat: 'Super Heavy Hajj Charter', turnMinutes: 105
+  }
 };
 
 /* ═══ S3 — TURNAROUND DETAIL (key: turnaround) ══════════════ */
@@ -2346,6 +2343,7 @@ function renderTurnaround(el) {
   }
   const c = f.calculation;
   const level = c.riskLevel || 'GREEN', accent = riskColor(level);
+  const spec = AIRCRAFT_SPECS[f.aircraftType] || AIRCRAFT_SPECS['Airbus A320'];
 
   /* gauge geometry */
   const R = 62, CIRC = 2 * Math.PI * R;
@@ -2366,19 +2364,27 @@ function renderTurnaround(el) {
 
   el.innerHTML = `
     <div class="turn-wrap">
-      <!-- 1 HEADER WITH INTERACTIVE AIRCRAFT MODEL SELECTOR -->
+      <!-- 1 HEADER WITH FLIGHT SELECTOR (mirrors the Flight Board) -->
       <div class="turn-head">
         <div class="th-id"><span class="fl-num mono">${escapeHtml(f.flightNumber)}</span>
-          <span class="fl-meta">${formatStand(f.stand)} · EIBT ${hhmm(f.eibt)} · STD ${hhmm(f.std)}</span></div>
+          <span class="fl-meta">${formatStand(f.stand)} · ${escapeHtml(f.aircraftType)} · EIBT ${hhmm(f.eibt)} · STD ${hhmm(f.std)}</span></div>
         <div class="ac-selector-box">
-          <label for="turn-ac-select" class="ac-sel-lbl">✈ Aircraft Model:</label>
+          <label for="turn-ac-select" class="ac-sel-lbl">✈ Flight:</label>
           <select id="turn-ac-select" class="ac-sel-dropdown mono">
-            ${Object.keys(AIRCRAFT_SPECS).map(type => `
-              <option value="${type}" ${f.aircraftType === type ? 'selected' : ''}>${type}</option>
+            ${boardSortedFlights().map(bf => `
+              <option value="${bf.id}" ${bf.id === f.id ? 'selected' : ''}>${escapeHtml(bf.flightNumber)} · ${escapeHtml(bf.aircraftType)} · ${bf.calculation.riskLevel}</option>
             `).join('')}
           </select>
         </div>
         ${riskChip(level)}
+      </div>
+
+      <!-- AIRCRAFT OPERATIONAL SPECS BANNER -->
+      <div class="ac-spec-banner">
+        <div class="asb-item"><span class="asb-k">MODEL CATEGORY</span><span class="asb-v">${escapeHtml(spec.cat)}</span></div>
+        <div class="asb-item"><span class="asb-k">SEATING CAPACITY</span><span class="asb-v mono">${spec.seating} seats</span></div>
+        <div class="asb-item"><span class="asb-k">TARGET TURNAROUND</span><span class="asb-v mono">${spec.turnMinutes} min</span></div>
+        <div class="asb-item"><span class="asb-k">GSE REQ FLEET</span><span class="asb-v mono">${spec.gseTotal} units</span></div>
       </div>
 
       <div class="turn-grid">
@@ -2513,20 +2519,18 @@ function renderTurnaround(el) {
   const gf = el.querySelector('.gauge-fill');
   requestAnimationFrame(() => { gf.style.transition = 'stroke-dashoffset 1s var(--ease)'; gf.style.strokeDashoffset = gf.dataset.target; });
 
+  /* flight selector — switches the ENTIRE Turnaround Detail (header,
+     stand, EIBT/STD, aircraft, gauge, band, drivers, provenance …) to the
+     chosen board flight, in place, without reloading the page. */
   const acSelect = el.querySelector('#turn-ac-select');
   if(acSelect){
     acSelect.onchange = e => {
-      const newType = e.target.value;
-      const spec = AIRCRAFT_SPECS[newType];
-      if(spec){
-        f.aircraftType = newType;
-        f.rawInputs.passengerTotal = Math.round(spec.seating * (f.rawInputs.loadFactorPercent / 100));
-        f.rawInputs.mtbfFailureProb = spec.mtbfProb;
-        f.calculation = calculateFlightRisk(f);
-        updateFlight(f.id, { aircraftType: newType, rawInputs: f.rawInputs, calculation: f.calculation });
-        showToast(`✈ ${f.flightNumber} model updated to ${newType} (Risk & TOBT recalculated)`, 'success');
-        renderTurnaround(el);
-      }
+      const nextId = e.target.value;
+      if(!nextId || nextId === selectedFlightId) return;
+      selectedFlightId = nextId;
+      const nf = getFlight(nextId);
+      renderTurnaround(el);
+      if(nf) showToast(`Now viewing ${nf.flightNumber} · ${nf.aircraftType} · ${nf.calculation.riskLevel}`, 'success');
     };
   }
 
@@ -2637,7 +2641,7 @@ function renderGseEntry(el) {
   const fleet = getGse();
   const byType = {};
   fleet.forEach(u => {
-    (byType[u.typeCode] = byType[u.typeCode] || { code: u.typeCode, name: u.type, category: u.category || 'POWERED', total: 0, avail: 0 });
+    (byType[u.typeCode] = byType[u.typeCode] || { code: u.typeCode, name: u.type, category: u.category || 'POWERED', gha: ghaOf(u), total: 0, avail: 0 });
   });
   fleet.forEach(u => {
     byType[u.typeCode].total++;
@@ -2645,6 +2649,11 @@ function renderGseEntry(el) {
   });
   const types = Object.values(byType);
   const s = getSession();
+
+  /* operating Ground Handling Agents across the fleet */
+  const ghaGroups = {};
+  GHA_ORDER.forEach(id => ghaGroups[id] = { total: 0, svc: 0 });
+  fleet.filter(u => u.status !== 'RETIRED').forEach(u => { const id = ghaOf(u); (ghaGroups[id] = ghaGroups[id] || { total: 0, svc: 0 }); ghaGroups[id].total++; if (u.status === 'SERVICEABLE') ghaGroups[id].svc++; });
 
   const poweredCount = types.filter(t => t.category === 'POWERED').length;
   const nonPoweredCount = types.filter(t => t.category === 'NON_POWERED').length;
@@ -2690,6 +2699,22 @@ function renderGseEntry(el) {
         </div>
       </div>
 
+      <!-- GROUND HANDLING AGENTS (MUX) -->
+      <div class="gha-section">
+        <div class="gha-head"><h3 class="card-h" style="margin:0">Ground Handling Agents · Multan (MUX)</h3>
+          <span class="gha-sub mono">${GHA_ORDER.filter(id => ghaGroups[id] && ghaGroups[id].total).length} agents operating this fleet</span></div>
+        <div class="gha-grid">
+          ${GHA_ORDER.filter(id => ghaGroups[id] && ghaGroups[id].total).map(id => { const g = GHAS[id]; const grp = ghaGroups[id];
+            const pct = grp.total ? Math.round(grp.svc / grp.total * 100) : 0;
+            return `<div class="gha-card" style="--gha:${g.color}">
+              <div class="ghc-top"><span class="ghc-name">${escapeHtml(g.name)}</span><span class="gha-badge" style="--gha:${g.color}">${escapeHtml(g.short)}</span></div>
+              <div class="ghc-role">${escapeHtml(g.role)}</div>
+              <div class="ghc-carriers">${escapeHtml(g.carriers)}</div>
+              <div class="ghc-foot"><span class="mono ghc-units">${grp.total} units</span><span class="ghc-bar"><span style="width:${pct}%"></span></span><span class="mono ghc-pct">${pct}% svc</span></div>
+            </div>`; }).join('')}
+        </div>
+      </div>
+
       <!-- CATEGORY TABS -->
       <div class="gse-cat-tabs" id="gse-cat-tabs">
         <button type="button" class="gct-tab ${gseCatFilter === 'ALL' ? 'active' : ''}" data-cat="ALL">All Fleet (${types.length})</button>
@@ -2705,7 +2730,7 @@ function renderGseEntry(el) {
             <div class="gr-top">
               <div class="gr-left">
                 <span class="gr-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${ICONS.gse}</svg></span>
-                <span class="gr-name">${escapeHtml(t.name)}</span>
+                <span class="gr-name">${escapeHtml(t.name)} ${ghaBadge(t.gha)}</span>
               </div>
               <span class="gr-badge mono" data-badge>${t.avail} / ${t.total}</span>
             </div>
@@ -3075,6 +3100,11 @@ function renderManager(el) {
     const t = gseByType[u.typeCode] = gseByType[u.typeCode] || { name: u.type, total: 0, svc: 0, uns: 0 };
     t.total++; if (u.status === 'SERVICEABLE') t.svc++; if (u.status === 'UNSERVICEABLE') t.uns++;
   });
+  /* category-level readiness (keeps the summary compact) */
+  const catGroups = { POWERED: { total: 0, svc: 0 }, NON_POWERED: { total: 0, svc: 0 }, INFRASTRUCTURE: { total: 0, svc: 0 } };
+  fleet.forEach(u => { const c = catGroups[u.category] ? u.category : 'POWERED'; catGroups[c].total++; if (u.status === 'SERVICEABLE') catGroups[c].svc++; });
+  const fleetUns = fleet.filter(u => u.status === 'UNSERVICEABLE').length;
+  const fleetSvcPct = fleet.length ? Math.round(fleet.filter(u => u.status === 'SERVICEABLE').length / fleet.length * 100) : 0;
 
   const outstanding = alerts.filter(a => a.stage !== 'ACKNOWLEDGED');
 
@@ -3130,13 +3160,21 @@ function renderManager(el) {
           </tbody></table></div>
       </section>
 
+      <!-- BALANCED ROW: fleet readiness (by category) + integration health -->
       <div class="mgr-grid">
-        <!-- GSE STATUS -->
-        <section class="card"><h3 class="card-h">GSE status</h3>
-          <div class="gse-summary">${Object.values(gseByType).map(t => `
-            <div class="gss-row"><span class="gss-name">${escapeHtml(t.name)}</span>
-              <span class="gss-bar"><span style="width:${(t.svc / t.total * 100)}%;background:${t.svc / t.total >= 0.7 ? 'var(--green)' : t.svc / t.total >= 0.45 ? 'var(--amber)' : 'var(--red)'}"></span></span>
-              <span class="mono gss-val">${t.svc}/${t.total}${t.uns ? ` · ${t.uns} U/S` : ''}</span></div>`).join('')}</div>
+        <!-- GSE FLEET READINESS -->
+        <section class="card"><h3 class="card-h">GSE fleet readiness</h3>
+          <div class="gse-readiness">
+            <div class="gro"><span class="gro-pct mono" style="color:${fleetSvcPct >= 70 ? 'var(--green)' : fleetSvcPct >= 45 ? 'var(--amber)' : 'var(--red)'}">${fleetSvcPct}%</span>
+              <span class="gro-lbl">serviceable · ${fleet.length} units${fleetUns ? ` · <strong>${fleetUns} U/S</strong>` : ''}</span></div>
+            <div class="gr-cats">
+              ${[['POWERED', '⚡ Powered'], ['NON_POWERED', '📦 Non-powered'], ['INFRASTRUCTURE', '🏗 Infrastructure']].map(([k, label]) => {
+                const g = catGroups[k] || { total: 0, svc: 0 }; const pct = g.total ? Math.round(g.svc / g.total * 100) : 0;
+                return `<div class="grc-row"><span class="grc-lbl">${label}</span>
+                  <span class="grc-bar"><span style="width:${pct}%;background:${pct >= 70 ? 'var(--green)' : pct >= 45 ? 'var(--amber)' : 'var(--red)'}"></span></span>
+                  <span class="mono grc-val">${g.svc}/${g.total}</span></div>`; }).join('')}
+            </div>
+          </div>
         </section>
 
         <!-- INTEGRATION HEALTH -->
@@ -3151,6 +3189,16 @@ function renderManager(el) {
           </div>
         </section>
       </div>
+
+      <!-- GSE AVAILABILITY BY TYPE (full width, multi-column) -->
+      <section class="card"><h3 class="card-h">GSE availability by type <span class="card-h-tag mono">${Object.keys(gseByType).length} types</span></h3>
+        <div class="gse-type-grid">${Object.values(gseByType).map(t => { const pct = t.total ? t.svc / t.total * 100 : 0;
+          return `<div class="gtg-item">
+            <div class="gtg-top"><span class="gtg-name">${escapeHtml(t.name)}</span>
+              <span class="mono gtg-val ${t.uns ? 'has-uns' : ''}">${t.svc}/${t.total}${t.uns ? ` · ${t.uns} U/S` : ''}</span></div>
+            <div class="gtg-bar"><span style="width:${pct}%;background:${pct >= 70 ? 'var(--green)' : pct >= 45 ? 'var(--amber)' : 'var(--red)'}"></span></div>
+          </div>`; }).join('')}</div>
+      </section>
     </div>`;
 
   /* count-up KPIs */
@@ -3207,7 +3255,30 @@ function bufferTimelineSVG(flights) {
 }
 
 /* ═══ S7 — EQUIPMENT REGISTER (key: equipment) ══════════════ */
-let equipFilter = { q: '', type: 'ALL', status: 'ALL' };
+/* ═══ Ground Handling Agents (GHAs) — Multan · MUX ═════════════
+   Each GSE unit is operated by one of the station's ground handling
+   agents (or the airport authority for safety/fixed infrastructure). */
+const GHAS = {
+  DNATA: { name: "Gerry's dnata",              short: 'dnata',         role: 'International passenger, ramp & baggage', carriers: 'Qatar Airways · flydubai · Air Arabia · Saudia · SalamAir', color: '#2563EB' },
+  PIA:   { name: 'PIA Ground Handling (PIAC)', short: 'PIA GH',        role: 'PIA ramp, baggage & turnaround',         carriers: 'PIA domestic & international · charter operators',           color: '#16A34A' },
+  SAPS:  { name: 'Shaheen Airport Services',   short: 'SAPS',          role: 'Cargo, freighter & charter support',      carriers: 'Cargo handling · freighter flights · private/charter',       color: '#D97706' },
+  RAS:   { name: 'Royal Airport Services',     short: 'RAS',           role: 'Domestic charter & apron support',        carriers: 'Domestic charter · commercial passenger support',            color: '#7C3AED' },
+  AUTH:  { name: 'Airport Authority (MUX)',    short: 'MUX Authority', role: 'Safety, rescue & fixed infrastructure',   carriers: 'Station-owned — not a commercial GHA',                       color: '#64748B' }
+};
+const GHA_ORDER = ['DNATA', 'PIA', 'SAPS', 'RAS', 'AUTH'];
+/* which agent operates each equipment type by default */
+const GHA_BY_TYPE = {
+  TUG: 'DNATA', TLT: 'DNATA', PBS: 'DNATA', CAT: 'DNATA', AMB: 'DNATA', PCA: 'DNATA', ASU: 'DNATA',
+  BL: 'PIA', BT: 'PIA', GPU: 'PIA', PWT: 'PIA', LST: 'PIA', BCD: 'PIA',
+  CL: 'SAPS', FLT: 'SAPS', FLK: 'SAPS', CPD: 'SAPS', ULD: 'SAPS',
+  DCT: 'RAS', SWP: 'RAS', CHK: 'RAS', CNS: 'RAS', MSH: 'RAS', JCK: 'RAS', COV: 'RAS',
+  RFF: 'AUTH', BCV: 'AUTH', PBB: 'AUTH', FHS: 'AUTH'
+};
+function ghaOf(u) { return (u && u.gha && GHAS[u.gha]) ? u.gha : (GHA_BY_TYPE[u && u.typeCode] || 'AUTH'); }
+function ghaShort(id) { return (GHAS[id] || GHAS.AUTH).short; }
+function ghaBadge(id) { const g = GHAS[id] || GHAS.AUTH; return `<span class="gha-badge" style="--gha:${g.color}">${escapeHtml(g.short)}</span>`; }
+
+let equipFilter = { q: '', type: 'ALL', status: 'ALL', gha: 'ALL' };
 function renderEquipment(el) {
   const fleet = getGse();
   const active = fleet.filter(u => u.status !== 'RETIRED');
@@ -3216,10 +3287,16 @@ function renderEquipment(el) {
   const overdue = active.filter(u => new Date(u.nextServiceDue) < new Date()).length;
   const types = [...new Set(fleet.map(u => u.type))];
 
+  /* group active fleet by operating GHA */
+  const ghaGroups = {};
+  GHA_ORDER.forEach(id => ghaGroups[id] = { total: 0, svc: 0 });
+  active.forEach(u => { const id = ghaOf(u); (ghaGroups[id] = ghaGroups[id] || { total: 0, svc: 0 }); ghaGroups[id].total++; if (u.status === 'SERVICEABLE') ghaGroups[id].svc++; });
+
   const q = equipFilter.q.toLowerCase();
   let rows = fleet.filter(u => {
     if (equipFilter.type !== 'ALL' && u.type !== equipFilter.type) return false;
     if (equipFilter.status !== 'ALL' && u.status !== equipFilter.status) return false;
+    if (equipFilter.gha !== 'ALL' && ghaOf(u) !== equipFilter.gha) return false;
     if (q && !(`${u.serial} ${u.type}`.toLowerCase().includes(q))) return false;
     return true;
   });
@@ -3237,16 +3314,33 @@ function renderEquipment(el) {
         <div class="fs-tile ${overdue ? 'warn' : ''}"><span class="fs-num mono">${overdue}</span><span class="fs-lbl">Overdue service</span></div>
       </div>
 
+      <!-- GROUND HANDLING AGENTS (MUX) -->
+      <div class="gha-section">
+        <div class="gha-head"><h3 class="card-h" style="margin:0">Ground Handling Agents · Multan (MUX)</h3>
+          <span class="gha-sub mono">${GHA_ORDER.filter(id => ghaGroups[id] && ghaGroups[id].total).length} agents operating this fleet</span></div>
+        <div class="gha-grid">
+          ${GHA_ORDER.filter(id => ghaGroups[id] && ghaGroups[id].total).map(id => { const g = GHAS[id]; const grp = ghaGroups[id];
+            const pct = grp.total ? Math.round(grp.svc / grp.total * 100) : 0;
+            return `<button class="gha-card ${equipFilter.gha === id ? 'active' : ''}" data-gha="${id}" type="button" style="--gha:${g.color}">
+              <div class="ghc-top"><span class="ghc-name">${escapeHtml(g.name)}</span><span class="gha-badge" style="--gha:${g.color}">${escapeHtml(g.short)}</span></div>
+              <div class="ghc-role">${escapeHtml(g.role)}</div>
+              <div class="ghc-carriers">${escapeHtml(g.carriers)}</div>
+              <div class="ghc-foot"><span class="mono ghc-units">${grp.total} units</span><span class="ghc-bar"><span style="width:${pct}%"></span></span><span class="mono ghc-pct">${pct}% svc</span></div>
+            </button>`; }).join('')}
+        </div>
+      </div>
+
       <div class="filters" style="border:1px solid var(--border);border-radius:var(--r);margin-bottom:16px">
         <div class="search"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20 L16.5 16.5"/></svg>
           <input type="text" id="eq-search" placeholder="Search serial or type…" value="${escapeHtml(equipFilter.q)}"/></div>
+        <select id="eq-gha" class="filter-select"><option value="ALL">All operators (GHA)</option>${GHA_ORDER.map(id => `<option value="${id}" ${equipFilter.gha === id ? 'selected' : ''}>${escapeHtml(GHAS[id].name)}</option>`).join('')}</select>
         <select id="eq-type" class="filter-select"><option value="ALL">All types</option>${types.map(t => `<option value="${escapeHtml(t)}" ${equipFilter.type === t ? 'selected' : ''}>${escapeHtml(t)}</option>`).join('')}</select>
         <select id="eq-status" class="filter-select"><option value="ALL">All statuses</option>${['SERVICEABLE', 'UNSERVICEABLE', 'MAINTENANCE', 'RETIRED'].map(s => `<option value="${s}" ${equipFilter.status === s ? 'selected' : ''}>${s}</option>`).join('')}</select>
       </div>
 
       <div class="card" style="padding:0"><div class="table-scroll"><table class="eq-tbl">
-        <thead><tr><th>Unit</th><th>Type</th><th>Serial</th><th>Status</th><th>MTBF</th><th>Last service</th><th>Next due</th><th>Fail prob</th><th></th></tr></thead>
-        <tbody>${rows.length ? rows.map(u => equipRowHtml(u)).join('') : `<tr><td colspan="9">${emptyState('No units match', 'Adjust the search or filters.')}</td></tr>`}</tbody>
+        <thead><tr><th>Unit</th><th>Type</th><th>Operator (GHA)</th><th>Serial</th><th>Status</th><th>MTBF</th><th>Last service</th><th>Next due</th><th>Fail prob</th><th></th></tr></thead>
+        <tbody>${rows.length ? rows.map(u => equipRowHtml(u)).join('') : `<tr><td colspan="10">${emptyState('No units match', 'Adjust the search or filters.')}</td></tr>`}</tbody>
       </table></div></div>
     </div>`;
 
@@ -3254,6 +3348,8 @@ function renderEquipment(el) {
   el.querySelector('#eq-search').oninput = e => { equipFilter.q = e.target.value; renderEquipmentTableOnly(); };
   el.querySelector('#eq-type').onchange = e => { equipFilter.type = e.target.value; renderEquipmentTableOnly(); };
   el.querySelector('#eq-status').onchange = e => { equipFilter.status = e.target.value; renderEquipmentTableOnly(); };
+  el.querySelector('#eq-gha').onchange = e => { equipFilter.gha = e.target.value; renderEquipmentBody(); };
+  el.querySelectorAll('.gha-card').forEach(c => c.onclick = () => { equipFilter.gha = equipFilter.gha === c.dataset.gha ? 'ALL' : c.dataset.gha; renderEquipmentBody(); });
   el.querySelector('.eq-tbl tbody').onclick = handleEquipRowClick;
 }
 
@@ -3265,10 +3361,11 @@ function renderEquipmentTableOnly() {
   let rows = fleet.filter(u => {
     if (equipFilter.type !== 'ALL' && u.type !== equipFilter.type) return false;
     if (equipFilter.status !== 'ALL' && u.status !== equipFilter.status) return false;
+    if (equipFilter.gha !== 'ALL' && ghaOf(u) !== equipFilter.gha) return false;
     if (q && !(`${u.serial} ${u.type}`.toLowerCase().includes(q))) return false;
     return true;
   });
-  tbody.innerHTML = rows.length ? rows.map(u => equipRowHtml(u)).join('') : `<tr><td colspan="9">${emptyState('No units match', 'Adjust the search or filters.')}</td></tr>`;
+  tbody.innerHTML = rows.length ? rows.map(u => equipRowHtml(u)).join('') : `<tr><td colspan="10">${emptyState('No units match', 'Adjust the search or filters.')}</td></tr>`;
 }
 
 function renderEquipmentBody() {
@@ -3294,7 +3391,7 @@ function equipRowHtml(u) {
   const fp = unitFailureProb(u);
   const stCls = { SERVICEABLE: 'ok', UNSERVICEABLE: 'bad', MAINTENANCE: 'maint', RETIRED: 'ret' }[u.status];
   return `<tr data-unit="${u.id}" class="${u.status === 'UNSERVICEABLE' ? 'row-uns' : ''} ${overdue ? 'row-overdue' : ''}">
-    <td class="mono">${escapeHtml(u.id.replace('gse-', ''))}</td><td>${escapeHtml(u.type)}</td><td class="mono">${escapeHtml(u.serial)}</td>
+    <td class="mono">${escapeHtml(u.id.replace('gse-', ''))}</td><td>${escapeHtml(u.type)}</td><td>${ghaBadge(ghaOf(u))}</td><td class="mono">${escapeHtml(u.serial)}</td>
     <td><span class="eq-status es-${stCls}">${u.status}</span></td>
     <td class="mono">${u.mtbfHours} h</td>
     <td class="mono">${fmtDate(u.lastService)}</td>
@@ -3357,6 +3454,7 @@ function openEquipModal(id) {
   const curStatus = u ? u.status : 'SERVICEABLE';
   const curLast = u ? u.lastService.slice(0, 10) : nowISO().slice(0, 10);
   const curNext = u ? u.nextServiceDue.slice(0, 10) : addMinutesISO(nowISO(), 60 * 24 * 30).slice(0, 10);
+  const curGha = u ? ghaOf(u) : 'DNATA';
 
   const modal = openModal(`
     <div class="modal-head">
@@ -3396,6 +3494,14 @@ function openEquipModal(id) {
             <input type="number" id="eq-f-mtbf" value="${u ? u.mtbfHours : '800'}" placeholder="800" />
             <span class="input-unit mono">hrs</span>
           </div>
+        </div>
+      </div>
+
+      <!-- OPERATING GROUND HANDLING AGENT -->
+      <div class="field">
+        <label for="eq-f-gha">Operating Ground Handling Agent (GHA)</label>
+        <div class="input-wrap">
+          <select id="eq-f-gha">${GHA_ORDER.map(id => `<option value="${id}" ${curGha === id ? 'selected' : ''}>${escapeHtml(GHAS[id].name)}</option>`).join('')}</select>
         </div>
       </div>
 
@@ -3488,11 +3594,12 @@ function openEquipModal(id) {
     const mtbf = Number(modal.querySelector('#eq-f-mtbf').value) || 800;
     const last = modal.querySelector('#eq-f-last').value;
     const next = modal.querySelector('#eq-f-next').value;
+    const gha = modal.querySelector('#eq-f-gha').value;
     if (!type || !serial) { showToast('Type and serial are required', 'error'); return; }
     const g = getGse();
     if (u) {
       Object.assign(g.find(x => x.id === id), {
-        type, serial, status, mtbfHours: mtbf,
+        type, serial, status, mtbfHours: mtbf, gha,
         lastService: last ? new Date(last).toISOString() : u.lastService,
         nextServiceDue: next ? new Date(next).toISOString() : u.nextServiceDue
       });
@@ -3500,7 +3607,7 @@ function openEquipModal(id) {
     } else {
       const code = (type.match(/\b\w/g) || ['G']).join('').toUpperCase().slice(0, 3);
       g.push({
-        id: 'gse-' + code + '-' + uid('n').slice(-4), typeCode: code, type, serial, status, mtbfHours: mtbf,
+        id: 'gse-' + code + '-' + uid('n').slice(-4), typeCode: code, type, serial, status, mtbfHours: mtbf, gha,
         lastService: last ? new Date(last).toISOString() : nowISO(),
         nextServiceDue: next ? new Date(next).toISOString() : addMinutesISO(nowISO(), 60 * 24 * 30),
         maintLog: []
@@ -3520,6 +3627,7 @@ function openMaintDrawer(id) {
     <div class="drawer-body">
       <div class="dw-grid">
         <div class="dw-item"><div class="k">Type</div><div class="v">${escapeHtml(u.type)}</div></div>
+        <div class="dw-item"><div class="k">Operator (GHA)</div><div class="v">${escapeHtml(GHAS[ghaOf(u)].name)}</div></div>
         <div class="dw-item"><div class="k">Status</div><div class="v">${u.status}</div></div>
         <div class="dw-item"><div class="k">MTBF</div><div class="v mono">${u.mtbfHours} h</div></div>
         <div class="dw-item"><div class="k">Fail prob</div><div class="v mono">${Math.round(unitFailureProb(u) * 100)}%</div></div>

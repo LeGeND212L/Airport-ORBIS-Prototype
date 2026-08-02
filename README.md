@@ -9,12 +9,14 @@
 <br/>
 
 <!-- ── live repo badges (auto-update from GitHub) ── -->
+
 [![Last Commit](https://img.shields.io/github/last-commit/LeGeND212L/Airport-ORBIS-Prototype?style=for-the-badge&color=2563EB&logo=git&logoColor=white)](https://github.com/LeGeND212L/Airport-ORBIS-Prototype/commits/main)
 [![Repo Size](https://img.shields.io/github/repo-size/LeGeND212L/Airport-ORBIS-Prototype?style=for-the-badge&color=1E3A8A)](https://github.com/LeGeND212L/Airport-ORBIS-Prototype)
 [![Top Language](https://img.shields.io/github/languages/top/LeGeND212L/Airport-ORBIS-Prototype?style=for-the-badge&color=16A34A)](https://github.com/LeGeND212L/Airport-ORBIS-Prototype)
 [![Stars](https://img.shields.io/github/stars/LeGeND212L/Airport-ORBIS-Prototype?style=for-the-badge&color=D97706&logo=github)](https://github.com/LeGeND212L/Airport-ORBIS-Prototype/stargazers)
 
 <!-- ── static tech badges ── -->
+
 ![JavaScript](https://img.shields.io/badge/JavaScript-ES2020-F7DF1E?style=flat-square&logo=javascript&logoColor=black)
 ![HTML5](https://img.shields.io/badge/HTML5-semantic-E34F26?style=flat-square&logo=html5&logoColor=white)
 ![CSS3](https://img.shields.io/badge/CSS3-hand--built-1572B6?style=flat-square&logo=css3&logoColor=white)
@@ -34,7 +36,7 @@
 
 On the apron, a delayed pushback cascades into missed slots, crew-hour breaches and knock-on delays across the network. Supervisors decide **how much buffer** to add to a turnaround under heat, equipment shortages and passenger load — usually by gut feel.
 
-**ORBIS replaces the guess with a defensible number.** For every flight it runs a **1,000-iteration Monte-Carlo simulation** over five operational risk variables and returns a recommended buffer, a full confidence band (P10 / P50 / P90), a risk classification (`GREEN` / `AMBER` / `RED`), the **dominant driver**, and a Target Off-Block Time (TOBT) — each one **reproducible to the exact digit**, because a disputed prediction must be *investigable*, not re-rolled.
+**ORBIS replaces the guess with a defensible number.** For every flight it runs a **1,000-iteration Monte-Carlo simulation** over five operational risk variables and returns a recommended buffer, a full confidence band (P10 / P50 / P90), a risk classification (`GREEN` / `AMBER` / `RED`), the **dominant driver**, and a Target Off-Block Time (TOBT) — each one **reproducible to the exact digit**, because a disputed prediction must be _investigable_, not re-rolled.
 
 > Built as a single, dependency-free front-end: **3 files, ~5,300 lines, zero libraries.** Every chart, gauge and distribution is hand-drawn SVG/canvas.
 
@@ -63,10 +65,10 @@ On the apron, a delayed pushback cascades into missed slots, crew-hour breaches 
 
 - 🔐 **Full auth stack** — login, request-access sign-up, corporate-email gate, password-strength enforcement, **5-digit MFA**, and 15-minute sliding session management.
 - 🛡️ **Role-based access control** — six roles, per-user module permissions enforced **in the data layer**, not just hidden in the UI.
-- 🧮 **Deterministic simulation engine** — seeded PRNG (mulberry32) + Box–Muller Gaussian sampling; *never* touches the DOM, *never* calls `Math.random()`.
+- 🧮 **Deterministic simulation engine** — seeded PRNG (mulberry32) + Box–Muller Gaussian sampling; _never_ touches the DOM, _never_ calls `Math.random()`.
 - 📊 **Eight operational modules** — from a glare-readable ramp Flight Board to a super-admin calibration console.
 - 🔔 **Live alert engine** — SMS → escalation → critical cascade with acknowledgement countdowns.
-- 🌦️ **Degraded mode** — when the weather/DCS feed drops, flights fall back to cached inputs, get flagged, and *still* produce a prediction.
+- 🌦️ **Degraded mode** — when the weather/DCS feed drops, flights fall back to cached inputs, get flagged, and _still_ produce a prediction.
 - 📈 **Closed learning loop** — logged outcomes feed accuracy analytics and an MAE-minimising recalibration proposal.
 - 🧾 **Append-only audit & versioning** — every consequential action is logged; weight versions are never overwritten.
 - 🎨 **Production-grade polish** — count-up numbers, staggered entrances, skeleton shimmer, custom modals/toasts, full `prefers-reduced-motion` support.
@@ -75,16 +77,16 @@ On the apron, a delayed pushback cascades into missed slots, crew-hour breaches 
 
 ## 🧭 Modules at a Glance
 
-| # | Module | Key | What it does |
-|---|--------|-----|--------------|
-| S2 | **Flight Board** | `flightboard` | Risk-sorted turnaround cards (RED→AMBER→GREEN), glare-safe, live acknowledgement countdowns |
-| S3 | **Turnaround Detail** | `turnaround` | Buffer gauge, P10–P90 confidence band, 1,000-outcome histogram, driver breakdown, provenance & **reproducibility verifier** |
-| S4 | **GSE Entry** | `gse` | Shift-start ground-equipment availability with a live recalculation sequence across all pending flights |
-| S5 | **Off-Block Logging** | `offblock` | Captures actuals, computes signed prediction error, enforces delay-reason codes — closes the learning loop |
-| S6 | **Manager Dashboard** | `manager` | KPI strip, escalation panel, risk donut, buffer timeline, integration health — with **airline-rep read-only scoping** |
-| S7 | **Equipment Register** | `equipment` | GSE fleet management, maintenance logs, failure-probability, status-driven recalcs |
-| S8 | **Weights & Thresholds** | `weights` | Calibration console: live preview, **monotonicity self-check (T9)**, append-only version history + diff |
-| S9 | **Accuracy Analytics** | `analytics` | Predicted-vs-actual scatter, error distribution, per-supervisor accuracy (anonymised by default), recalibration proposal, CSV/JSON export |
+| #   | Module                   | Key           | What it does                                                                                                                              |
+| --- | ------------------------ | ------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| S2  | **Flight Board**         | `flightboard` | Risk-sorted turnaround cards (RED→AMBER→GREEN), glare-safe, live acknowledgement countdowns                                               |
+| S3  | **Turnaround Detail**    | `turnaround`  | Buffer gauge, P10–P90 confidence band, 1,000-outcome histogram, driver breakdown, provenance & **reproducibility verifier**               |
+| S4  | **GSE Entry**            | `gse`         | Shift-start ground-equipment availability with a live recalculation sequence across all pending flights                                   |
+| S5  | **Off-Block Logging**    | `offblock`    | Captures actuals, computes signed prediction error, enforces delay-reason codes — closes the learning loop                                |
+| S6  | **Manager Dashboard**    | `manager`     | KPI strip, escalation panel, risk donut, buffer timeline, integration health — with **airline-rep read-only scoping**                     |
+| S7  | **Equipment Register**   | `equipment`   | GSE fleet management, maintenance logs, failure-probability, status-driven recalcs                                                        |
+| S8  | **Weights & Thresholds** | `weights`     | Calibration console: live preview, **monotonicity self-check (T9)**, append-only version history + diff                                   |
+| S9  | **Accuracy Analytics**   | `analytics`   | Predicted-vs-actual scatter, error distribution, per-supervisor accuracy (anonymised by default), recalibration proposal, CSV/JSON export |
 
 ---
 
@@ -125,17 +127,17 @@ $$
 \text{dominant}=\arg\max_k(\text{share}_k)
 $$
 
-| Condition | Risk |
-|-----------|------|
-| `P90 ≤ 30` **and** `spread < 6` | 🟢 **GREEN** |
+| Condition                        | Risk         |
+| -------------------------------- | ------------ |
+| `P90 ≤ 30` **and** `spread < 6`  | 🟢 **GREEN** |
 | `P90 ≤ 40` **and** `spread < 12` | 🟡 **AMBER** |
-| otherwise | 🔴 **RED** |
+| otherwise                        | 🔴 **RED**   |
 
 $$
 \text{TOBT} = \text{EIBT} + \text{round}(P_{50})
 $$
 
-> **Guaranteed monotonic.** The built-in **T9 self-check** sweeps a sampled input grid and asserts the buffer *never decreases* as any single variable rises — verified across **480 combinations with zero violations**. A hotter day can never produce a *shorter* buffer.
+> **Guaranteed monotonic.** The built-in **T9 self-check** sweeps a sampled input grid and asserts the buffer _never decreases_ as any single variable rises — verified across **480 combinations with zero violations**. A hotter day can never produce a _shorter_ buffer.
 
 ---
 
@@ -216,13 +218,13 @@ stateDiagram-v2
 
 ## 🛠️ Tech Stack
 
-| Layer | Choice | Notes |
-|-------|--------|-------|
-| **Language** | Vanilla JavaScript (ES2020) | No frameworks, no build step |
-| **Styling** | Hand-authored CSS | Design tokens, dark-on-navy auth, `prefers-reduced-motion` |
-| **Charts** | Hand-built SVG | Gauges, donut, scatter, histograms, timelines — no chart library |
-| **Persistence** | `localStorage` | Nine namespaced keys, append-only where it matters |
-| **Dependencies** | **None** | Only Google Fonts (Inter + IBM Plex Mono) |
+| Layer            | Choice                      | Notes                                                            |
+| ---------------- | --------------------------- | ---------------------------------------------------------------- |
+| **Language**     | Vanilla JavaScript (ES2020) | No frameworks, no build step                                     |
+| **Styling**      | Hand-authored CSS           | Design tokens, dark-on-navy auth, `prefers-reduced-motion`       |
+| **Charts**       | Hand-built SVG              | Gauges, donut, scatter, histograms, timelines — no chart library |
+| **Persistence**  | `localStorage`              | Nine namespaced keys, append-only where it matters               |
+| **Dependencies** | **None**                    | Only Google Fonts (Inter + IBM Plex Mono)                        |
 
 ---
 
@@ -252,11 +254,11 @@ python -m http.server 5500
 
 **MFA code for all accounts:** `12345`
 
-| Role | Username / Email | Password | Lands on |
-|------|------------------|----------|----------|
-| 🛠️ System Administrator | `admin` | `admin` | Admin dashboard (user management) |
-| 🏢 Station Admin (all modules) | `sana.malik@menzies-ras.pk` | `Statn@2024` | Full operational suite |
-| 🧑‍✈️ Airline Representative | `usman.tariq@piac.com.pk` | `Airln@2024` | Manager Dashboard (read-only, scoped) |
+| Role                           | Username / Email            | Password     | Lands on                              |
+| ------------------------------ | --------------------------- | ------------ | ------------------------------------- |
+| 🛠️ System Administrator        | `admin`                     | `admin`      | Admin dashboard (user management)     |
+| 🏢 Station Admin (all modules) | `sana.malik@menzies-ras.pk` | `Statn@2024` | Full operational suite                |
+| 🧑‍✈️ Airline Representative      | `usman.tariq@piac.com.pk`   | `Airln@2024` | Manager Dashboard (read-only, scoped) |
 
 ---
 
@@ -285,25 +287,25 @@ Airport-ORBIS-Prototype/
 
 ## 💾 Storage Model
 
-| Key | Purpose |
-|-----|---------|
-| `orbis_flights` | Flight records + their stored calculation |
-| `orbis_gse` | Ground-support-equipment fleet units |
-| `orbis_gse_shift` | Per-shift availability submissions |
-| `orbis_alerts` | Generated alerts + escalation state |
-| `orbis_outcomes` | Prediction outcomes — **append-only learning dataset** |
-| `orbis_weights` | Weight/threshold versions — **append-only, never overwritten** |
-| `orbis_action_rules` | (risk × dominant-variable) → recommended actions |
-| `orbis_integration` | Weather / DCS feed health flags |
-| `orbis_activity` | Audit & activity log |
+| Key                  | Purpose                                                        |
+| -------------------- | -------------------------------------------------------------- |
+| `orbis_flights`      | Flight records + their stored calculation                      |
+| `orbis_gse`          | Ground-support-equipment fleet units                           |
+| `orbis_gse_shift`    | Per-shift availability submissions                             |
+| `orbis_alerts`       | Generated alerts + escalation state                            |
+| `orbis_outcomes`     | Prediction outcomes — **append-only learning dataset**         |
+| `orbis_weights`      | Weight/threshold versions — **append-only, never overwritten** |
+| `orbis_action_rules` | (risk × dominant-variable) → recommended actions               |
+| `orbis_integration`  | Weather / DCS feed health flags                                |
+| `orbis_activity`     | Audit & activity log                                           |
 
 ---
 
 ## 🧠 Engineering Highlights
 
-- **Reproducibility as a feature** — the Turnaround screen has a *"Verify reproducibility"* button that re-runs the engine from the stored inputs, seed and weight-version and confirms an **exact match**. Predictions are evidence, not vibes.
+- **Reproducibility as a feature** — the Turnaround screen has a _"Verify reproducibility"_ button that re-runs the engine from the stored inputs, seed and weight-version and confirms an **exact match**. Predictions are evidence, not vibes.
 - **Monotonicity contract (T9)** — a shipped self-check proves the model behaves sensibly; a reduced-draw fast path keeps it sub-second.
-- **Provenance-aware** — every input carries `{ source, timestamp, quality }` (`GOOD / STALE / MANUAL / CACHED`), so when a prediction is wrong you can tell whether the *algorithm* or the *input* was at fault.
+- **Provenance-aware** — every input carries `{ source, timestamp, quality }` (`GOOD / STALE / MANUAL / CACHED`), so when a prediction is wrong you can tell whether the _algorithm_ or the _input_ was at fault.
 - **Degraded ≠ broken** — a degraded prediction (clearly flagged) is more useful to a supervisor than a blank screen; degraded-quality outcomes are excluded from recalibration.
 - **Real RBAC** — airline reps are filtered at the array level before rendering; removing a permission blocks direct module access and redirects.
 - **Append-only calibration** — saving weights creates a new version and supersedes the old; every stored calculation keeps its `weightVersionId`, so historical results stay explainable forever.
